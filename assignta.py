@@ -75,6 +75,5 @@ def unavailable(solution, ta_availability):
     return penalty
 
 
-def unpreferred(test, tas):
-    # Count matching 1s across all elements
-    return ((test == 1) & (tas == 'W')).sum().sum()
+def unpreferred(solution, ta_availability):
+    return ((solution == 1) & (ta_availability == 'W')).sum().sum()
