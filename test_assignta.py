@@ -4,7 +4,7 @@ import pytest
 import os
 
 # Import the objective functions from your implementation
-from assignta import undersupport, unavailable
+from assignta import undersupport, unavailable, unpreferred
 
 def load_solution(file_path):
     """
@@ -70,3 +70,15 @@ def test_unavailable(test_file, expected_penalty):
     ta_availability = load_tas('data/tas.csv')
     penalty = unavailable(solution, ta_availability)
     assert penalty == expected_penalty, f"For {test_file}, expected unavailable penalty {expected_penalty} but got {penalty}"
+
+# For unpreferred: Test1 => 10, Test2 => 16, Test3 => 17.
+@pytest.mark.parametrize("test_file, expected_penalty",[
+    ("data/test1.csv", 10),
+    ("data/test2.csv", 16),
+    ("data/test3.csv", 17)
+])
+def test_unpreferred(test_file, expected_penalty):
+    solution = load_solution(test_file)
+    ta_availability = load_tas('data/tas.csv')
+    penalty = unpreferred(solution, ta_availability)
+    assert penalty == expected_penalty, f"For {test_file}, expected unpreferred penalty {expected_penalty} but got {penalty}"
