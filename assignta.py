@@ -8,29 +8,42 @@ def overallocation(solution, tas_df):
     For each TA, if the number of labs assigned exceeds their max_assigned,
     the penalty is the excess. Sum over all TAs.
     """
+    # Load the tas dataframe which contains max_assigned
+    #tas_df = pd.read_csv('data/tas.csv')
+    
     assignments = np.sum(solution, axis=1)
     max_assigned = tas_df["max_assigned"].to_numpy()
     penalty = np.maximum(assignments - max_assigned, 0)
     return int(np.sum(penalty))
 
+def _has_conflicts(ta_row, section_times):
+    # Get indices of assigned sections
+    assigned_indices = np.where(ta_row == 1)[0]
+    # Get times of assigned sections
+    assigned_times = section_times[assigned_indices]
+    # Check if there are duplicate times (conflicts)
+    return len(assigned_times) > len(set(assigned_times))
+
 def conflicts(solution, sections_df):
+    """ 
+    Calculate time conflicts in a solution using functional programming.
+    A time conflict occurs when a TA is assigned to multiple sections with the same time slot.
+    
+    Parameters:
+        solution: 2D numpy array where rows are TAs and columns are sections
+        sections_df: DataFrame containing section information with 'daytime' column
+    
+    Returns:
+        Total number of TAs with time conflicts
     """
-    Compute time conflicts.
-    Assumes sections_df contains a 'time' column indicating meeting time.
-    For each TA, if they are assigned to more than one section with the same time,
-    count 1 conflict for that TA.
-    """
-    conflict_count = 0
-    # Assume the order of sections in sections_df matches the solution's columns.
+    # Extract section times
     section_times = sections_df["daytime"].to_numpy()
-    num_tas = solution.shape[0]
-    for i in range(num_tas):
-        assigned_indices = np.where(solution[i] == 1)[0]
-        if len(assigned_indices) > 0:
-            times = section_times[assigned_indices]
-            if len(np.unique(times)) < len(times):
-                conflict_count += 1
-    return conflict_count
+    
+    # Use the helper function with section_times as an additional parameter
+    conflict_map = map(lambda ta_row: _has_conflicts(ta_row, section_times), solution)
+    
+    # Count total conflicts
+    return sum(conflict_map)
 
 def undersupport(solution, min_ta):
     """
