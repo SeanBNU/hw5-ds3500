@@ -1,5 +1,36 @@
 import numpy as np
 
+def overallocation(solution, tas_df):
+    """
+    Compute overallocation penalty.
+    For each TA, if the number of labs assigned exceeds their max_assigned,
+    the penalty is the excess. Sum over all TAs.
+    """
+    assignments = np.sum(solution, axis=1)
+    max_assigned = tas_df["max_assigned"].to_numpy()
+    penalty = np.maximum(assignments - max_assigned, 0)
+    return int(np.sum(penalty))
+
+def conflicts(solution, sections_df):
+    """
+    Compute time conflicts.
+    Assumes sections_df contains a 'time' column indicating meeting time.
+    For each TA, if they are assigned to more than one section with the same time,
+    count 1 conflict for that TA.
+    """
+    conflict_count = 0
+    # Assume the order of sections in sections_df matches the solution's columns.
+    section_times = sections_df["daytime"].to_numpy()
+    num_tas = solution.shape[0]
+    for i in range(num_tas):
+        assigned_indices = np.where(solution[i] == 1)[0]
+        if len(assigned_indices) > 0:
+            times = section_times[assigned_indices]
+            if len(np.unique(times)) < len(times):
+                conflict_count += 1
+    return conflict_count
+
+
 def undersupport(solution, min_ta):
     """
     Compute the undersupport penalty.
