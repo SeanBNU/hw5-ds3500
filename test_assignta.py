@@ -4,7 +4,7 @@ import pytest
 import os
 
 # Import the objective functions from your implementation
-from assignta import undersupport, unavailable, unpreferred
+from assignta import undersupport, unavailable, unpreferred, conflicts, overallocation
 
 def load_solution(file_path):
     """
@@ -41,6 +41,37 @@ def load_tas(file_path='data/tas.csv'):
 # ----------------------------
 
 # Expected penalty values from the professor's answer key:
+
+# For overallocation: Test1 => 34, Test2 => 37, Test3 => 19.
+@pytest.mark.parametrize("test_file, expected_penalty", [
+    ("data/test1.csv", 34),
+    ("data/test2.csv", 37),
+    ("data/test3.csv", 19)
+])
+def test_overallocation(test_file, expected_penalty):
+    """
+    Test the overallocation objective.
+    """
+    solution = load_solution(test_file)
+    sections_df = pd.read_csv('data/sections.csv')
+    penalty = overallocation(solution, sections_df)
+    assert penalty == expected_penalty, f"For {test_file}, expected overallocation penalty {expected_penalty} but got {penalty}"
+    
+# For conflicts: Test1 => 7, Test2 => 5, Test3 => 2.
+@pytest.mark.parametrize("test_file, expected_penalty", [
+    ("data/test1.csv", 7),
+    ("data/test2.csv", 5),
+    ("data/test3.csv", 2)
+])
+def test_conflicts(test_file, expected_penalty):
+    """
+    Test the time conflicts objective.
+    """
+    solution = load_solution(test_file)
+    sections_df = pd.read_csv('data/sections.csv')
+    penalty = conflicts(solution, sections_df)
+    assert penalty == expected_penalty, f"For {test_file}, expected time conflicts penalty {expected_penalty} but got {penalty}"
+
 # For undersupport: Test1 => 1, Test2 => 0, Test3 => 11.
 @pytest.mark.parametrize("test_file, expected_penalty", [
     ("data/test1.csv", 1),
