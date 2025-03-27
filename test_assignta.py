@@ -53,10 +53,10 @@ def test_overallocation(test_file, expected_penalty):
     Test the overallocation objective.
     """
     solution = load_solution(test_file)
-    sections_df = pd.read_csv('data/sections.csv')
-    penalty = overallocation(solution, sections_df)
+    tas_df = pd.read_csv('data/tas.csv')
+    penalty = overallocation(solution, tas_df)
     assert penalty == expected_penalty, f"For {test_file}, expected overallocation penalty {expected_penalty} but got {penalty}"
-    
+
 # For conflicts: Test1 => 7, Test2 => 5, Test3 => 2.
 @pytest.mark.parametrize("test_file, expected_penalty", [
     ("data/test1.csv", 7),

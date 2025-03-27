@@ -2,14 +2,14 @@ import numpy as np
 import random
 import pandas as pd
 
-def overallocation(solution, sections_df):
+def overallocation(solution, tas_df):
     """
     Compute overallocation penalty.
     For each TA, if the number of labs assigned exceeds their max_assigned,
     the penalty is the excess. Sum over all TAs.
     """
     # Load the tas dataframe which contains max_assigned
-    tas_df = pd.read_csv('data/tas.csv')
+    #tas_df = pd.read_csv('data/tas.csv')
     
     assignments = np.sum(solution, axis=1)
     max_assigned = tas_df["max_assigned"].to_numpy()
