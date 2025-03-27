@@ -75,6 +75,9 @@ def unavailable(solution, ta_availability):
                 penalty += 1
     return penalty
 
+def unpreferred(test, tas):
+    # Count matching 1s across all elements
+    return ((test == 1) & (tas == 'W')).sum().sum()
 
 class TAAssignment:
     """
