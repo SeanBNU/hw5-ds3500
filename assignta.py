@@ -73,3 +73,8 @@ def unavailable(solution, ta_availability):
             if solution[i, j] == 1 and ta_availability[i, j] == "U":
                 penalty += 1
     return penalty
+
+
+def unpreferred(test, tas):
+    # Count matching 1s across all elements
+    return ((test == 1) & (tas == 'W')).sum().sum()
