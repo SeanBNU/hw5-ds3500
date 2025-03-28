@@ -1,5 +1,7 @@
 # Getting Started
 
+sean causing fuckery
+
 Welcome to the repo! This guide will help you set up the project locally. Make sure to open or navigate to the directory where you'd like the repo folder to appear.
 
 ---

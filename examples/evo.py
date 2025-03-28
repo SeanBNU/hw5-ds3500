@@ -7,7 +7,7 @@ Description: A concise evolutionary computing framework for solving
 import random as rnd
 import copy   # doing deep copies of solutions when generating offspring
 from functools import reduce  # for discarding dominated (bad) solutions
-
+import time
 class Evo:
 
     def __init__(self):
@@ -75,13 +75,12 @@ class Evo:
         nds = reduce(Evo._reduce_nds, self.pop.keys(), self.pop.keys())
         self.pop = {k:self.pop[k] for k in nds}
 
-    # Attendance: 8337
-
     def evolve(self, n=1, dom=100, status=1000):
         """ Run the framework (start evolving solutions)
         n = # of random agent invocations (# of generations) """
 
         agent_names = list(self.agents.keys())
+        start = time.time()
         for i in range(n):
             pick = rnd.choice(agent_names)  # pick an agent to run
             self.run_agent(pick)
@@ -92,7 +91,6 @@ class Evo:
                 print("Iteration: ", i)
                 print("Population size: ", len(self.pop))
                 print(self)
-
         self.remove_dominated()
 
 
