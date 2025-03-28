@@ -128,22 +128,16 @@ class TAAssignment:
         Returns:
             Total weighted penalty score (lower is better)
         """
-        if weights is None:
-            weights = {
-                'overallocation': 1.0,
-                'conflicts': 1.0,
-                'undersupport': 1.0,
-                'unavailable': 1.0
-            }
-        
+
         penalties = {
             'overallocation': overallocation(solution, self.tas_df),
             'conflicts': conflicts(solution, self.sections_df),
             'undersupport': undersupport(solution, self.min_ta),
-            'unavailable': unavailable(solution, self.ta_availability)
+            'unavailable': unavailable(solution, self.ta_availability),
+            'unpreferred' : unpreferred(solution, self.ta_availability)
         }
         
-        total_penalty = sum(weights[k] * penalties[k] for k in weights)
+        total_penalty = sum(penalties[k] for k in penalties)
         return total_penalty
     
     def random_solution(self):
@@ -165,7 +159,7 @@ class TAAssignment:
         child = np.vstack((sol1[:point, :], sol2[point:, :]))
         return child
 
-    def repair_agent(self, solution):
+    '''def repair_agent(self, solution):
         """
         Repair the solution to reduce overallocation and undersupport.
             - For TAs over-assigned, remove random assignments until meeting max_assigned.
@@ -194,7 +188,7 @@ class TAAssignment:
                 i = np.random.choice(available_tas)
                 repaired[i, j] = 1
                 assigned_per_section[j] += 1
-        return repaired
+        return repaired'''
 
     def random_agent(self):
         """Generate a new random solution."""

@@ -1,6 +1,6 @@
 import time
 import numpy as np
-from assignta import TAAssignment
+from assignta import TAAssignment, overallocation
 from evo import Evo
 from profiler import profile
 
@@ -27,6 +27,8 @@ def run_evolution():
     
     # Register the objective using the TA assignment's objective method.
     evo_instance.add_objective("total_penalty", ta_solver.objective)
+    evo_instance.add_objective("overallocation", overallocation)
+
     
     # Register the bit-flip agent.
     evo_instance.add_agent("bit_flip", bit_flip_agent, k=1)
@@ -77,6 +79,5 @@ def run_evolution():
     print("\nBest performance for each objective:")
     for obj_name, best in best_scores.items():
         print(f"{obj_name}: {best}")
-
-if __name__ == "__main__":
-    run_evolution()
+        
+run_evolution()
