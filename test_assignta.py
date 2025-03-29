@@ -3,6 +3,8 @@ import pandas as pd
 import pytest
 from assignta import *
 
+load_data()
+
 def load_solution(test_file):
     """Load a test solution from a CSV file."""
     return pd.read_csv(test_file, header=None).values

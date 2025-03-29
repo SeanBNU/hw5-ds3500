@@ -1,70 +1,73 @@
-# Getting Started
 
-sean causing fuckery
+# TA Assignment Optimizer 🧠
 
-Welcome to the repo! This guide will help you set up the project locally. Make sure to open or navigate to the directory where you'd like the repo folder to appear.
+Welcome to the TA Assignment Optimizer! This project uses evolutionary algorithms to solve the complex problem of assigning TAs to course sections while balancing multiple competing objectives.
 
----
+## 🚀 What's This All About?
 
-## Cloning the Repo
+Ever tried to create the perfect schedule for teaching assistants? It's like solving a Rubik's cube blindfolded! This tool helps you:
 
-### Method 1: VSCode / IDE
+- Match TAs to course sections based on their preferences
+- Avoid scheduling conflicts (nobody can be in two places at once!)
+- Ensure each section has enough support
+- Respect TA workload limits
+- Optimize for everyone's happiness!
 
-1. Open a fresh VSCode window and click "clone from GitHub URL" or launch the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`).
-2. Select **"Git: Clone"**.
-3. Paste the URL:  
-   ```
-   https://github.com/SeanBNU/hw5-ds3500
-   ```
-4. Choose your destination folder and open the repo.
+## 🛠️ Getting Started
 
-### Method 2: Terminal
+### Prerequisites
 
-1. Open your terminal and navigate to your desired folder:
+- Python 3.7+
+- NumPy
+- Pandas
+- A sense of adventure!
+
+### Installation
+
+1. Clone this repo:
    ```bash
-   cd /path/to/your/directory
-   ```
-2. Clone the repo and navigate into it:
-   ```bash
-   git clone    https://github.com/SeanBNU/hw5-ds3500.git
+   git clone https://github.com/SeanBNU/hw5-ds3500.git
    cd hw5-ds3500
    ```
 
----
+2. Make sure you have all dependencies:
+   ```bash
+   pip install numpy pandas
+   ```
 
-## Setup
+## 🎮 How to Use
 
-Install Git LFS and pull any large files:
+1. Prepare your data:
+   - `sections.csv`: Contains info about each section (time slots, minimum TA requirements)
+   - `tas.csv`: Contains TA availability and preferences
 
-```bash
-git lfs install
-git lfs pull
-```
+2. Run the optimizer:
+   ```bash
+   python assignta.py
+   ```
 
----
+3. Check out the results in `darwinzz_summary.csv`
 
-## Workflow
+## 🧪 How It Works
 
-- **Branching:** Always create a new branch for your edits:
-  ```bash
-  git checkout -b your-feature-name
-  ```
+Our evolutionary algorithm uses these objective functions:
+- **Overallocation**: Prevents TAs from being assigned too many sections
+- **Conflicts**: Ensures TAs aren't scheduled for multiple sections at the same time
+- **Undersupport**: Makes sure each section has enough TAs
+- **Unavailable**: Avoids assigning TAs when they're unavailable
+- **Unpreferred**: Minimizes assignments to sections TAs prefer not to teach
 
-- **Push:** Push your branch when you're ready:
-  ```bash
-  git push origin your-feature-name
-  ```
+The algorithm uses various "agents" to evolve solutions:
+- **Swapper**: Makes random changes to assignments
+- **Repair agents**: Fix specific issues in candidate solutions
+- **Destroy unavailable**: Removes problematic assignments
 
-- **Pull Request:** Merge your branch into `main` only after thorough testing.
+## 🏆 Team Darwinzz
 
----
+This project was created by Team Darwinzz, masters of evolutionary algorithms and scheduling wizards!
 
-## Note on the `ai` Branch
+## 📊 Performance Profiling
 
-The `ai` branch contains a one-shot solution from `o3-mini-high` that can serve as inspiration. To check it out:
+Want to see how efficient our code is? Check out the profiler report after running the optimizer to see which functions are taking the most time.
 
-```bash
-git checkout ai
-```
-
----
+Happy optimizing! 🎉

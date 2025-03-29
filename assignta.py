@@ -324,4 +324,5 @@ def main():
     
     profiler.Profiler.report()
 
-main()
+if __name__ == "__main__":
+    main()
