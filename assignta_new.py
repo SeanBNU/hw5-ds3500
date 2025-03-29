@@ -83,6 +83,7 @@ def unpreferred(solution):
     
     # Count matching 1s where TAs marked 'W' (weak preference)
     return int(((solution == 1) & (ta_availability == 'W')).sum())
+
 #Agents
 def swapper(solutions):
     """
@@ -115,9 +116,11 @@ def main():
 
     # Print final results
     print("\nFinal population:")
-    best_eval = list(E.pop.keys())[0]
-    best_score = dict(best_eval)["overallocation"]
-    print(f"Best overallocation score: {best_score}")    
-    print(E)
+    best_eval = list(E.pop.keys())[0]  # Get the first (best) solution
+    best_scores = dict(best_eval)
+    
+    print("\nBest solution scores:")
+    for objective, score in best_scores.items():
+        print(f"  {objective}: {score}")
 
 main()
