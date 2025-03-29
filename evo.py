@@ -2,6 +2,7 @@ import copy
 import numpy as np
 import time
 import random as rnd
+import profiler
 
 class Evo:
     def __init__(self, random_state=None):
@@ -67,6 +68,7 @@ class Evo:
         new_solution = op(picks)
         self.add_solution(new_solution)
     
+    @profiler.profile
     def evolve(self, n=1, dom=100, status=1000, runtime = 60):
         """ Run the framework (start evolving solutions)
         n = # of random agent invocations (# of generations) """

@@ -5,6 +5,7 @@ import random as rnd
 import profiler
 
 _DATA_CACHE = {}
+np.random.seed(42)
 
 def set_global_data(data_dict):
     """
@@ -31,6 +32,7 @@ def get_global_data(key=None):
         return _DATA_CACHE.get(key)
     return _DATA_CACHE
 
+@profiler.profile
 def load_data(sections_path='data/sections.csv', tas_path='data/tas.csv'):
     """
     Load and preprocess all required data for objective functions.
@@ -52,7 +54,8 @@ def load_data(sections_path='data/sections.csv', tas_path='data/tas.csv'):
     })
     
     print("Data loaded successfully.")
-
+    
+@profiler.profile
 def overallocation(solution):
     """
     Compute overallocation penalty.
@@ -68,6 +71,7 @@ def overallocation(solution):
     penalty = np.maximum(assignments - max_assigned, 0)
     return int(sum(penalty))
 
+@profiler.profile
 def conflicts(solution):
     """
     Calculate time conflicts in a solution.
@@ -80,15 +84,16 @@ def conflicts(solution):
         int: Number of time conflicts
     """
     section_times = get_global_data('section_times')
-    
-    def _has_conflicts(ta_row):
-        assigned_indices = np.where(ta_row == 1)[0]
-        assigned_times = section_times[assigned_indices]
-        return len(assigned_times) > len(set(assigned_times))
-    
-    conflict_map = map(_has_conflicts, solution)
-    return sum(conflict_map)
+    conflict_count = 0
+    row_sums = np.sum(solution, axis=1)
+    for i in np.where(row_sums >= 2)[0]:
+        assigned_times = section_times[solution[i] == 1]
+        if len(set(assigned_times)) < len(assigned_times):
+            conflict_count += 1
 
+    return conflict_count
+
+@profiler.profile
 def undersupport(solution):
     """
     Compute undersupport penalty.
@@ -105,6 +110,7 @@ def undersupport(solution):
     differences[differences < 0] = 0
     return int(differences.sum())
 
+@profiler.profile
 def unavailable(solution):
     """
     Compute unavailable penalty.
@@ -119,6 +125,7 @@ def unavailable(solution):
     
     return int(((solution == 1) & (ta_availability == "U")).sum())
 
+@profiler.profile
 def unpreferred(solution):
     """
     Compute the unpreferred penalty.
@@ -271,6 +278,7 @@ def main():
     Main function to run the TA assignment optimization.
     Loads data, sets up the evolutionary framework, and runs the optimization.
     """
+    
     load_data()
 
     E = evo.Evo(random_state=42)
@@ -288,7 +296,7 @@ def main():
     L = np.random.randint(0, 2, size=(40,17))
     E.add_solution(L)
 
-    E.evolve(n=1000000, dom=15, status=1000, runtime=300)
+    E.evolve(n=2000000, dom=10, status=1000, runtime=300)
 
     # Print final results
     print("\nFinal population:")
