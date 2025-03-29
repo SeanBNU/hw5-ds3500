@@ -1,10 +1,12 @@
 import copy
 import numpy as np
+import time
+import random as rnd
 
 class Evo:
     def __init__(self, random_state=None):
         # Population is maintained as a list of (evaluation, solution) pairs.
-        self.pop = []
+        self.pop = {}
         self.fitness = {}   # objectives: name -> function
         self.agents = {}    # agents: name -> (operator function, num_solutions_input)
         self.rng = np.random.default_rng(random_state)
@@ -21,15 +23,15 @@ class Evo:
         """Randomly select k solutions from the current population."""
         if not self.pop:
             return []
-        solutions = [s for (_, s) in self.pop]
+        solutions = list(self.pop.values())  # Get values from dictionary
         # Use the RNG to select random solutions (deep copy them)
         return [copy.deepcopy(self.rng.choice(solutions)) for _ in range(k)]
     
     def add_solution(self, sol):
         """Evaluate and add a solution to the population."""
         evaluation = tuple((name, f(sol)) for name, f in self.fitness.items())
-        self.pop.append((evaluation, sol))
-    
+        self.pop[evaluation] = sol  # Use as dictionary key -> value
+        
     @staticmethod
     def _dominates(p, q):
         """
@@ -44,17 +46,20 @@ class Evo:
     
     def remove_dominated(self):
         """Remove dominated solutions from the population."""
-        new_pop = []
-        for i, (eval_i, sol_i) in enumerate(self.pop):
+        new_pop = {}
+        evaluations = list(self.pop.keys())
+        
+        for i, eval_i in enumerate(evaluations):
             dominated = False
-            for j, (eval_j, sol_j) in enumerate(self.pop):
+            for j, eval_j in enumerate(evaluations):
                 if i != j and Evo._dominates(eval_j, eval_i):
                     dominated = True
                     break
             if not dominated:
-                new_pop.append((eval_i, sol_i))
+                new_pop[eval_i] = self.pop[eval_i]
+                
         self.pop = new_pop
-    
+        
     def run_agent(self, name):
         """Invoke the named agent on randomly selected solution(s)."""
         op, k = self.agents[name]
@@ -62,22 +67,29 @@ class Evo:
         new_solution = op(picks)
         self.add_solution(new_solution)
     
-    def evolve(self, n=1, dom_interval=100, status_interval=1000):
-        """
-        Run the evolutionary process for n iterations.
-        Periodically remove dominated solutions and print status.
-        """
+    def evolve(self, n=1, dom=100, status=1000, runtime = 60):
+        """ Run the framework (start evolving solutions)
+        n = # of random agent invocations (# of generations) """
+
         agent_names = list(self.agents.keys())
+        start = time.time()
         for i in range(n):
-            pick = self.rng.choice(agent_names)
+            pick = rnd.choice(agent_names)  # pick an agent to run
             self.run_agent(pick)
-            if i % dom_interval == 0:
+            if i % dom == 0:
                 self.remove_dominated()
-            if i % status_interval == 0:
+            if i % status == 0:
                 self.remove_dominated()
-                print("Iteration:", i)
-                print("Population size:", len(self.pop))
-                # Report the best evaluation (using total penalty as a simple aggregate)
-                best_eval = min(self.pop, key=lambda x: sum(score for _, score in x[0]))
-                print("Best evaluation:", best_eval[0])
+                print("Iteration: ", i)
+                print("Population size: ", len(self.pop))
+                print('time:',time.time() - start)
+            if time.time() - start >= runtime:
+                    break
         self.remove_dominated()
+        
+    def __str__(self):
+        """ Output the solutions in the population """
+        rslt = ""
+        for eval,sol in self.pop.items():
+            rslt += str(dict(eval))+":\t"+str(sol)+"\n"
+        return rslt

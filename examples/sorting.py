@@ -45,7 +45,7 @@ def main():
     E.add_solution(L)
     print(E)
 
-    E.evolve(n=10000, dom=100, status=1000, run=3)
+    E.evolve(n=10000, dom=100, status=1000)
     print(E)
 
 main()
