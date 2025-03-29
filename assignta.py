@@ -288,7 +288,7 @@ def main():
     L = np.random.randint(0, 2, size=(40,17))
     E.add_solution(L)
 
-    E.evolve(n=1000000, dom=15, status=1000, runtime=120)
+    E.evolve(n=1000000, dom=15, status=1000, runtime=300)
 
     # Print final results
     print("\nFinal population:")
@@ -313,7 +313,6 @@ def main():
     summary_df = summary_df[["groupname", "overallocation", "conflicts", 
                             "undersupport", "unavailable", "unpreferred"]]
     summary_df.to_csv("/Users/shouryayadav/Documents/courses/DS3500/hw5-ds3500/darwinzz_summary.csv", index=False)
-    print(f"Saved Pareto-optimal solutions to darwinzz_summary.csv")
     
     profiler.Profiler.report()
 

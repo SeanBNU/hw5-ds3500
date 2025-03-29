@@ -1,0 +1,7 @@
+Function              Calls     TotSec   Sec/Call
+repair_overallocation_agent 199278   1.992750   0.000010
+repair_conflicts_agent 199912  12.749445   0.000064
+swapper              199995   0.643509   0.000003
+destroy_unavailable  200474   3.769601   0.000019
+repair_unpreferred_agent 200341  12.334454   0.000062
+
