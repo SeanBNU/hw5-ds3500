@@ -297,5 +297,7 @@ def main():
     print("\nBest solution scores:")
     for objective, score in best_scores.items():
         print(f"  {objective}: {score}")
+    
+    profiler.Profiler.report()
 
 main()
