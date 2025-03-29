@@ -62,8 +62,7 @@ def repair_overallocation_agent(candidates):
     Expects 'candidates' to be a list containing one 2D NumPy array.
     """
     sol = candidates[0].copy()  # make a copy to avoid modifying the original
-    # Ensure global_tas_df is loaded (from main() for example)
-    global global_tas_df
+    
     # Compute number of assignments per TA and get their maximum allowed assignments.
     assignments = np.sum(sol, axis=1)
     max_assigned = tas_df["max_assigned"].to_numpy()
@@ -130,6 +129,36 @@ def repair_unpreferred_agent(candidates):
                 sol[i, j] = 0
     return sol
 
+@profiler.profile
+def destroy_unavailable(candidates):
+    """
+    Agent that eliminates one random assignment from a candidate solution
+    where the TA is unavailable.
+    
+    Expects:
+      - candidates: a list containing one 2D NumPy array (solution)
+      - ta_availability: a 2D NumPy array of strings matching the solution's shape,
+                         where 'U' indicates an unavailable assignment.
+    
+    Operation:
+      - Find all indices (i, j) where the candidate solution has a 1 (assignment)
+        and the corresponding ta_availability is 'U'.
+      - Randomly choose one such index and set that assignment to 0.
+    """
+    sol = candidates[0].copy()  # work on a copy to preserve the original
+    
+    # Find all indices where there is an assignment and the TA is unavailable.
+    # This uses vectorized boolean indexing.
+    mask = (sol == 1) & (ta_availability == 'U')
+    indices = np.argwhere(mask)
+    
+    if indices.size > 0:
+        # Randomly choose one index among the unavailable assignments
+        random_index = indices[np.random.choice(len(indices))]
+        sol[random_index[0], random_index[1]] = 0
+    
+    return sol
+
 # --- Main Function to Run Evolution ---
 def main():
     # Set seed for reproducibility (affects np.random.randint used in swapper)
@@ -162,6 +191,10 @@ def main():
 
     # Register the repair unpreferred agent
     E.add_agent("repair unpreferred", repair_unpreferred_agent)
+
+    # Register the destroy unavailable agent
+    E.add_agent("destroy unavailable", destroy_unavailable)
+    E.add_agent("destroy unavailable v2", destroy_unavailable)
     
     # Register our evaluation functions using the real objective functions
     E.add_objective("overallocation", lambda sol: overallocation(sol, tas_df))
