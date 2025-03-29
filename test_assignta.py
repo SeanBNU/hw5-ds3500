@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
-from assignta_new import *
+from assignta import *
 
 def load_solution(test_file):
     """Load a test solution from a CSV file."""

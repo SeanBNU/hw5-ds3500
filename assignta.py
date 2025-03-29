@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import evo_new
+import evo
 import random as rnd
 import profiler
 
@@ -273,7 +273,7 @@ def main():
     """
     load_data()
 
-    E = evo_new.Evo(random_state=42)
+    E = evo.Evo(random_state=42)
     E.add_agent("swapper", swapper)
     E.add_agent("repair_overallocation", repair_overallocation_agent)
     E.add_agent("repair_conflicts", repair_conflicts_agent)
