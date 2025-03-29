@@ -296,7 +296,7 @@ def main():
     L = np.random.randint(0, 2, size=(40,17))
     E.add_solution(L)
 
-    E.evolve(n=2000000, dom=10, status=1000, runtime=300)
+    E.evolve(n=2000000, dom=10, status=1000, runtime=25)
 
     # Print final results
     print("\nFinal population:")
@@ -320,7 +320,7 @@ def main():
     # Ensure columns are in the correct order
     summary_df = summary_df[["groupname", "overallocation", "conflicts", 
                             "undersupport", "unavailable", "unpreferred"]]
-    summary_df.to_csv("/Users/shouryayadav/Documents/courses/DS3500/hw5-ds3500/darwinzz_summary.csv", index=False)
+    summary_df.to_csv("darwinzz_summary.csv", index=False)
     
     profiler.Profiler.report()
 
