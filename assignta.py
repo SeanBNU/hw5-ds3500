@@ -288,8 +288,9 @@ def main():
     L = np.random.randint(0, 2, size=(40,17))
     E.add_solution(L)
 
-    E.evolve(n=1000000, dom=15, status=1000, runtime=10)
+    E.evolve(n=1000000, dom=15, status=1000, runtime=120)
 
+    # Print final results
     print("\nFinal population:")
     best_eval = list(E.pop.keys())[0]
     best_scores = dict(best_eval)
@@ -297,6 +298,22 @@ def main():
     print("\nBest solution scores:")
     for objective, score in best_scores.items():
         print(f"  {objective}: {score}")
+    
+    # Create summary table of Pareto-optimal solutions
+    summary_data = []
+    for evaluation in E.pop.keys():
+        row = {"groupname": "darwinzz"}
+        for obj, val in evaluation:
+            row[obj] = val
+        summary_data.append(row)
+    
+    # Convert to DataFrame and save to CSV
+    summary_df = pd.DataFrame(summary_data)
+    # Ensure columns are in the correct order
+    summary_df = summary_df[["groupname", "overallocation", "conflicts", 
+                            "undersupport", "unavailable", "unpreferred"]]
+    summary_df.to_csv("/Users/shouryayadav/Documents/courses/DS3500/hw5-ds3500/darwinzz_summary.csv", index=False)
+    print(f"Saved Pareto-optimal solutions to darwinzz_summary.csv")
     
     profiler.Profiler.report()
 

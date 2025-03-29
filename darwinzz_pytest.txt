@@ -1,0 +1,25 @@
+============================================ 15 passed in 10.51s ============================================
+(Jupyter) (base) shouryayadav@MacBook-Pro-131 hw5-ds3500 % pytest -v test_assignta.py
+============================================ test session starts ============================================
+platform darwin -- Python 3.13.2, pytest-8.3.4, pluggy-1.5.0 -- /opt/anaconda3/envs/Jupyter/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/shouryayadav/Documents/courses/DS3500/hw5-ds3500
+collected 15 items                                                                                          
+
+test_assignta.py::test_overallocation[data/test1.csv-34] PASSED                                       [  6%]
+test_assignta.py::test_overallocation[data/test2.csv-37] PASSED                                       [ 13%]
+test_assignta.py::test_overallocation[data/test3.csv-19] PASSED                                       [ 20%]
+test_assignta.py::test_conflicts[data/test1.csv-7] PASSED                                             [ 26%]
+test_assignta.py::test_conflicts[data/test2.csv-5] PASSED                                             [ 33%]
+test_assignta.py::test_conflicts[data/test3.csv-2] PASSED                                             [ 40%]
+test_assignta.py::test_undersupport[data/test1.csv-1] PASSED                                          [ 46%]
+test_assignta.py::test_undersupport[data/test2.csv-0] PASSED                                          [ 53%]
+test_assignta.py::test_undersupport[data/test3.csv-11] PASSED                                         [ 60%]
+test_assignta.py::test_unavailable[data/test1.csv-59] PASSED                                          [ 66%]
+test_assignta.py::test_unavailable[data/test2.csv-57] PASSED                                          [ 73%]
+test_assignta.py::test_unavailable[data/test3.csv-34] PASSED                                          [ 80%]
+test_assignta.py::test_unpreferred[data/test1.csv-10] PASSED                                          [ 86%]
+test_assignta.py::test_unpreferred[data/test2.csv-16] PASSED                                          [ 93%]
+test_assignta.py::test_unpreferred[data/test3.csv-17] PASSED                                          [100%]
+
+============================================ 15 passed in 10.57s ============================================
