@@ -102,6 +102,3 @@ class Evo:
         for eval,sol in self.pop.items():
             rslt += str(dict(eval))+":\t"+str(sol)+"\n"
         return rslt
-
-
-
