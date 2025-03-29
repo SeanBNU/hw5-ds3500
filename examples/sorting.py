@@ -9,7 +9,7 @@ a sorting algorithm.
 """
 
 import random as rnd
-import evo
+import evo_new
 
 
 # An objective
@@ -33,7 +33,7 @@ def swapper(solutions):
 def main():
 
     # Create the framework object
-    E = evo.Evo()
+    E = evo_new.Evo()
     E.add_agent("swapper", swapper)
     E.add_objective("stepdowns", stepdowns)
     E.add_objective("sumratio", sumratio)

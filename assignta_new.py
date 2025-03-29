@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import evo
+import evo_new
 import random as rnd
 _DATA_CACHE = {}
 def set_global_data(data_dict):
@@ -18,31 +18,26 @@ def get_global_data(key=None):
 def load_data(sections_path='data/sections.csv', tas_path='data/tas.csv'):
     """
     Load and preprocess all required data for objective functions.
-    Stores data in the global data cache so that objective functions can access it.
     """
-    # Directly extract only what's needed from CSVs
-    # For sections, only read the required columns
+    # Load sections data
     sections = pd.read_csv(sections_path, usecols=["min_ta", "daytime"])
     
-    # For TAs, only read the required columns
-    tas = pd.read_csv(tas_path).iloc[:,2:]
+    # Load TA data (header assumed)
+    ta_cols = ["max_assigned"] + [str(i) for i in range(17)]
+    tas = pd.read_csv(tas_path, usecols=ta_cols)
     
-    # Set the global data with just what's needed
+    # Set the global data
     set_global_data({
         'min_ta': sections["min_ta"].to_numpy(),
         'section_times': sections["daytime"].to_numpy(),
         'max_assigned': tas["max_assigned"].to_numpy(),
-        'ta_availability': tas.iloc[:,1:].to_numpy()
+        'ta_availability': tas.iloc[:,1:].to_numpy()  # Columns 1-17 are availability
     })
     
     print("Data loaded successfully.")
 
 def overallocation(solution):
-    """
-    Compute overallocation penalty.
-    For each TA, if the number of labs assigned exceeds their max_assigned,
-    the penalty is the excess. Sum over all TAs.
-    """
+    """Compute overallocation penalty."""
     max_assigned = get_global_data('max_assigned')
     assignments = np.sum(solution, axis=1)
     penalty = np.maximum(assignments - max_assigned, 0)
@@ -56,43 +51,38 @@ def conflicts(solution):
     section_times = get_global_data('section_times')
     
     def _has_conflicts(ta_row):
-        # Get indices of assigned sections
         assigned_indices = np.where(ta_row == 1)[0]
         # Get times of assigned sections
         assigned_times = section_times[assigned_indices]
-        # Check if there are duplicate times (conflicts)
         return len(assigned_times) > len(set(assigned_times))
     
-    # Use the helper function with section_times
-    conflict_map = map(lambda ta_row: _has_conflicts(ta_row), solution)
-    
-    # Count total conflicts
+    conflict_map = map(_has_conflicts, solution)
     return sum(conflict_map)
 
 def undersupport(solution):
-    """
-    Compute the undersupport penalty.
-    Penalty for having fewer TAs assigned to a lab than the minimum required.
-    """
+    """Compute undersupport penalty."""
     min_ta = get_global_data('min_ta')
-    
-    # Sum the assignments for each lab (column)
+    # Sum columns (labs)
     lab_assignments = solution.sum(axis=0)
-    # Calculate penalty: only if assignments are less than the required minimum
     differences = min_ta - lab_assignments
-    # Only count positive differences (i.e., when undersupport exists)
     differences[differences < 0] = 0
     return int(differences.sum())
 
 def unavailable(solution):
-    """
-    Compute the unavailable penalty.
-    Penalty for assigning TAs to labs they marked as unavailable.
-    """
+    """Compute unavailable penalty."""
     ta_availability = get_global_data('ta_availability')
     
     return int(((solution == 1) & (ta_availability == "U")).sum())
 
+def unpreferred(solution):
+    """
+    Compute the unpreferred penalty.
+    Penalty for assigning TAs to labs they would prefer not to teach.
+    """
+    ta_availability = get_global_data('ta_availability')
+    
+    # Count matching 1s where TAs marked 'W' (weak preference)
+    return int(((solution == 1) & (ta_availability == 'W')).sum())
 #Agents
 def swapper(solutions):
     """
@@ -110,12 +100,13 @@ def main():
     load_data()
 
     # Create the framework object
-    E = evo.Evo(random_state=42)
+    E = evo_new.Evo(random_state=42)
     E.add_agent("swapper", swapper)
     E.add_objective("overallocation", overallocation)
     E.add_objective("conflicts", conflicts)
     E.add_objective("undersupport", undersupport)
     E.add_objective('unavailable',unavailable)
+    E.add_objective('unpreferred',unpreferred)
 
     L = np.random.randint(0, 2, size=(40,17))
     E.add_solution(L)
@@ -128,6 +119,5 @@ def main():
     best_score = dict(best_eval)["overallocation"]
     print(f"Best overallocation score: {best_score}")    
     print(E)
+
 main()
- 
-    

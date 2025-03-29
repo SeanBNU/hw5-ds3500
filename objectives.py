@@ -2,7 +2,7 @@
 import copy
 import numpy as np
 import pandas as pd
-from evo import Evo
+from evo_new import Evo
 import random as rnd
 _DATA_CACHE = {}
 

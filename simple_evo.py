@@ -1,7 +1,7 @@
 import time
 import numpy as np
 from assignta import TAAssignment, overallocation
-from evo import Evo
+from evo_new import Evo
 from profiler import profile
 
 def bit_flip_agent(solutions):
