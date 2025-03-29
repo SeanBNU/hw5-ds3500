@@ -37,7 +37,7 @@ def unavailable(solution, ta_availability):
     return penalty
 
 def unpreferred(test, tas):
-    return ((test == 1) & (tas == 'W')).sum().sum()
+    return int(((test == 1) & (tas == 'W')).sum().sum())
 
 # --- End of Objective Functions ---
 
@@ -55,6 +55,35 @@ def swapper(candidates):
     sol[i, j] = 1 - sol[i, j]  # flip the bit (0 becomes 1 and vice versa)
     return sol
 
+@profiler.profile
+def destroy_unavailable(candidates):
+    """
+    Agent that eliminates one random assignment from a candidate solution
+    where the TA is unavailable.
+    
+    Expects:
+      - candidates: a list containing one 2D NumPy array (solution)
+      - ta_availability: a 2D NumPy array of strings matching the solution's shape,
+                         where 'U' indicates an unavailable assignment.
+    
+    Operation:
+      - Find all indices (i, j) where the candidate solution has a 1 (assignment)
+        and the corresponding ta_availability is 'U'.
+      - Randomly choose one such index and set that assignment to 0.
+    """
+    sol = candidates[0].copy()  # work on a copy to preserve the original
+    
+    # Find all indices where there is an assignment and the TA is unavailable.
+    # This uses vectorized boolean indexing.
+    mask = (sol == 1) & (ta_availability == 'U')
+    indices = np.argwhere(mask)
+    
+    if indices.size > 0:
+        # Randomly choose one index among the unavailable assignments
+        random_index = indices[np.random.choice(len(indices))]
+        sol[random_index[0], random_index[1]] = 0
+    
+    return sol
 
 # --- Main Function to Run Evolution ---
 def main():
@@ -62,17 +91,23 @@ def main():
     np.random.seed(42)
     
     # Load data for evaluation functions
+    global tas_df
     tas_df = pd.read_csv("data/tas.csv")
+    global sections_df
     sections_df = pd.read_csv("data/sections.csv")
+    global min_ta
     min_ta = sections_df["min_ta"].to_numpy()
-    # Assume the lab section columns start at column 2 and there are 17 sections
-    ta_availability = np.array(tas_df.iloc[:, 2:2+17])
+    # Assume the lab section columns start at column 3 and there are 17 sections
+    global ta_availability
+    ta_availability = np.array(tas_df.iloc[:, 3:3+17])
     
     # Create the Evo framework instance with a reproducible random state
     E = evo.Evo(random_state=42)
     
     # Register the swapper agent with Evo
     E.add_agent("swapper", swapper)
+    E.add_agent("unavailable", destroy_unavailable)
+
     
     # Register our evaluation functions using the real objective functions
     E.add_objective("overallocation", lambda sol: overallocation(sol, tas_df))
@@ -90,7 +125,7 @@ def main():
         print("Evaluation:", eval_tuple)
     
     # Run evolution for a given number of iterations
-    E.evolve(n=200, dom_interval=10, status_interval=20)
+    E.evolve(n=10000, dom_interval=100, status_interval=20)
     
     print("\nFinal population:")
     for eval_tuple, sol in E.pop:
