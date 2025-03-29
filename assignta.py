@@ -37,7 +37,7 @@ def unavailable(solution, ta_availability):
     return penalty
 
 def unpreferred(test, tas):
-    return ((test == 1) & (tas == 'W')).sum().sum()
+    return int(((test == 1) & (tas == 'W')).sum().sum())
 
 # --- End of Objective Functions ---
 
@@ -55,6 +55,80 @@ def swapper(candidates):
     sol[i, j] = 1 - sol[i, j]  # flip the bit (0 becomes 1 and vice versa)
     return sol
 
+@profiler.profile
+def repair_overallocation_agent(candidates):
+    """
+    Repair agent: removes one assignment from a randomly selected overallocated TA.
+    Expects 'candidates' to be a list containing one 2D NumPy array.
+    """
+    sol = candidates[0].copy()  # make a copy to avoid modifying the original
+    # Ensure global_tas_df is loaded (from main() for example)
+    global global_tas_df
+    # Compute number of assignments per TA and get their maximum allowed assignments.
+    assignments = np.sum(sol, axis=1)
+    max_assigned = tas_df["max_assigned"].to_numpy()
+    
+    # Find indices of TAs that are overallocated.
+    overallocated = np.where(assignments > max_assigned)[0]
+    if overallocated.size > 0:
+        # Choose one overallocated TA at random.
+        ta_idx = np.random.choice(overallocated)
+        # Find lab sections that this TA is currently assigned to.
+        assigned_labs = np.where(sol[ta_idx] == 1)[0]
+        if assigned_labs.size > 0:
+            # Remove one random assignment for this TA.
+            lab_idx = np.random.choice(assigned_labs)
+            sol[ta_idx, lab_idx] = 0
+    return sol
+
+@profiler.profile
+def repair_conflicts_agent(candidates):
+    """
+    Repair agent: resolves time conflicts in the candidate solution.
+    For each TA, if they are assigned multiple sections with the same time slot,
+    remove extra assignments until there is at most one assignment per time slot.
+    Expects 'candidates' to be a list containing one 2D NumPy array.
+    """
+    sol = candidates[0].copy()  # make a copy (as in swapper)
+    
+    section_times = sections_df["daytime"].to_numpy()
+    
+    # For each TA (each row in the solution)
+    for i in range(sol.shape[0]):
+        # Get indices of sections assigned to TA i
+        assigned_indices = np.where(sol[i] == 1)[0]
+        time_mapping = {}
+        # Build a mapping from time slot to the sections assigned in that slot.
+        for idx in assigned_indices:
+            time_slot = section_times[idx]
+            if time_slot in time_mapping:
+                time_mapping[time_slot].append(idx)
+            else:
+                time_mapping[time_slot] = [idx]
+        # For time slots with conflict (more than one section) remove extras.
+        for time_slot, indices in time_mapping.items():
+            while len(indices) > 1:
+                # Remove one randomly chosen extra assignment
+                remove_idx = np.random.choice(indices[1:])
+                sol[i, remove_idx] = 0
+                indices.remove(remove_idx)
+    return sol
+
+@profiler.profile
+def repair_unpreferred_agent(candidates):
+    """
+    Repair agent: removes unpreferred assignments from the candidate solution.
+    Expects 'candidates' to be a list containing one 2D NumPy array.
+    """
+    sol = candidates[0].copy()
+    # Assume the TA availability is stored in a global NumPy array, e.g., loaded in main() as "ta_availability"
+    global ta_availability
+    # For each TA and each lab section, remove assignment if unpreferred.
+    for i in range(sol.shape[0]):
+        for j in range(sol.shape[1]):
+            if sol[i, j] == 1 and ta_availability[i, j] == 'W':
+                sol[i, j] = 0
+    return sol
 
 # --- Main Function to Run Evolution ---
 def main():
@@ -62,17 +136,32 @@ def main():
     np.random.seed(42)
     
     # Load data for evaluation functions
+    global tas_df
     tas_df = pd.read_csv("data/tas.csv")
+
+    global sections_df
     sections_df = pd.read_csv("data/sections.csv")
+
     min_ta = sections_df["min_ta"].to_numpy()
-    # Assume the lab section columns start at column 2 and there are 17 sections
-    ta_availability = np.array(tas_df.iloc[:, 2:2+17])
+
+    # Assume the lab section columns start at column 3 and there are 17 sections
+    global ta_availability
+    ta_availability = np.array(tas_df.iloc[:, 3:3+17])
     
     # Create the Evo framework instance with a reproducible random state
     E = evo.Evo(random_state=42)
     
     # Register the swapper agent with Evo
     E.add_agent("swapper", swapper)
+
+    # Register the repair overallocation agent
+    E.add_agent("repair overallocation", repair_overallocation_agent) 
+
+    # Register the repair conflicts agent
+    E.add_agent("repair conflicts", repair_conflicts_agent)  
+
+    # Register the repair unpreferred agent
+    E.add_agent("repair unpreferred", repair_unpreferred_agent)
     
     # Register our evaluation functions using the real objective functions
     E.add_objective("overallocation", lambda sol: overallocation(sol, tas_df))
@@ -90,7 +179,7 @@ def main():
         print("Evaluation:", eval_tuple)
     
     # Run evolution for a given number of iterations
-    E.evolve(n=200, dom_interval=10, status_interval=20)
+    E.evolve(n=1000, dom_interval=30, status_interval=50)
     
     print("\nFinal population:")
     for eval_tuple, sol in E.pop:
