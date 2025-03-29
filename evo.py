@@ -81,3 +81,10 @@ class Evo:
                 best_eval = min(self.pop, key=lambda x: sum(score for _, score in x[0]))
                 print("Best evaluation:", best_eval[0])
         self.remove_dominated()
+
+    # def __str__(self):
+    #     """ Output the solutions in the population """
+    #     rslt = ""
+    #     for eval,sol in self.pop.items():
+    #         rslt += str(dict(eval))+":\t"+str(sol)+"\n"
+    #     return rslt

@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
-import evo  # assuming evo.py is available in the same package
+import evo  # our evolutionary framework from evo.py
+import profiler  # for profiling our agent functions
 
-# --- Objective Functions (kept unchanged) ---
+# --- Objective Functions (unchanged) ---
 
 def overallocation(solution, tas_df):
     assignments = np.sum(solution, axis=1)
@@ -40,42 +41,63 @@ def unpreferred(test, tas):
 
 # --- End of Objective Functions ---
 
+
 # --- Super Simple Agent Function ---
+@profiler.profile
 def swapper(candidates):
     """
     Super simple agent: flips one random bit in the candidate solution.
-    Expects 'candidates' to be a list with one solution (a 2D NumPy array).
+    Expects 'candidates' to be a list containing one 2D NumPy array.
     """
     sol = candidates[0].copy()  # make a copy to avoid modifying the original
     i = np.random.randint(0, sol.shape[0])
     j = np.random.randint(0, sol.shape[1])
-    sol[i, j] = 1 - sol[i, j]  # flip the bit (0->1, 1->0)
+    sol[i, j] = 1 - sol[i, j]  # flip the bit (0 becomes 1 and vice versa)
     return sol
 
-# --- Main Function to Instantiate Evo and Run the Agent ---
+
+# --- Main Function to Run Evolution ---
 def main():
-    # Create the Evo framework instance (with reproducibility)
+    # Set seed for reproducibility (affects np.random.randint used in swapper)
+    np.random.seed(42)
+    
+    # Load data for evaluation functions
+    tas_df = pd.read_csv("data/tas.csv")
+    sections_df = pd.read_csv("data/sections.csv")
+    min_ta = sections_df["min_ta"].to_numpy()
+    # Assume the lab section columns start at column 2 and there are 17 sections
+    ta_availability = np.array(tas_df.iloc[:, 2:2+17])
+    
+    # Create the Evo framework instance with a reproducible random state
     E = evo.Evo(random_state=42)
     
-    # Register the super simple swapper agent
+    # Register the swapper agent with Evo
     E.add_agent("swapper", swapper)
     
-    # Register a dummy objective function: here we simply sum the bits of the matrix.
-    # (In the future, you might register a composite objective based on the penalty functions above.)
-    E.add_objective("sum", lambda sol: np.sum(sol))
+    # Register our evaluation functions using the real objective functions
+    E.add_objective("overallocation", lambda sol: overallocation(sol, tas_df))
+    E.add_objective("conflicts", lambda sol: conflicts(sol, sections_df))
+    E.add_objective("undersupport", lambda sol: undersupport(sol, min_ta))
+    E.add_objective("unavailable", lambda sol: unavailable(sol, ta_availability))
+    E.add_objective("unpreferred", lambda sol: unpreferred(sol, ta_availability))
     
-    # Initialize the population with one random solution (40 TAs x 17 lab sections)
-    random_solution = np.random.randint(0, 2, size=(40, 17))
-    E.add_solution(random_solution)
+    # Initialize population with one random solution (40 TAs x 17 labs)
+    initial_solution = np.random.randint(0, 2, size=(40, 17))
+    E.add_solution(initial_solution)
     
     print("Initial population:")
-    print(E)
+    for eval_tuple, sol in E.pop:
+        print("Evaluation:", eval_tuple)
     
-    # Run evolution for a small number of iterations to test the swapper agent
-    E.evolve(n=1000, dom_interval=100, status_interval=500)
+    # Run evolution for a given number of iterations
+    E.evolve(n=200, dom_interval=10, status_interval=20)
     
-    print("Final population:")
-    print(E)
+    print("\nFinal population:")
+    for eval_tuple, sol in E.pop:
+        print("Evaluation:", eval_tuple)
+    
+    # Report profiling results
+    profiler.Profiler.report()
 
 if __name__ == "__main__":
     main()
