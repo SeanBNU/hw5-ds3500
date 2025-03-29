@@ -2,14 +2,30 @@ import pandas as pd
 import numpy as np
 import evo_new
 import random as rnd
+import profiler
+
 _DATA_CACHE = {}
+
 def set_global_data(data_dict):
-    """Set global data that can be accessed by objective functions."""
+    """
+    Set global data that can be accessed by objective functions.
+    
+    Args:
+        data_dict (dict): Dictionary containing data to be stored globally
+    """
     global _DATA_CACHE
     _DATA_CACHE = data_dict
 
 def get_global_data(key=None):
-    """Get global data, either a specific key or the entire dictionary."""
+    """
+    Get global data, either a specific key or the entire dictionary.
+    
+    Args:
+        key (str, optional): Specific data key to retrieve. Defaults to None.
+        
+    Returns:
+        The requested data or the entire data dictionary
+    """
     global _DATA_CACHE
     if key is not None:
         return _DATA_CACHE.get(key)
@@ -18,41 +34,55 @@ def get_global_data(key=None):
 def load_data(sections_path='data/sections.csv', tas_path='data/tas.csv'):
     """
     Load and preprocess all required data for objective functions.
+    
+    Args:
+        sections_path (str): Path to the sections CSV file
+        tas_path (str): Path to the TAs CSV file
     """
-    # Load sections data
     sections = pd.read_csv(sections_path, usecols=["min_ta", "daytime"])
     
-    # Load TA data (header assumed)
     ta_cols = ["max_assigned"] + [str(i) for i in range(17)]
     tas = pd.read_csv(tas_path, usecols=ta_cols)
     
-    # Set the global data
     set_global_data({
         'min_ta': sections["min_ta"].to_numpy(),
         'section_times': sections["daytime"].to_numpy(),
         'max_assigned': tas["max_assigned"].to_numpy(),
-        'ta_availability': tas.iloc[:,1:].to_numpy()  # Columns 1-17 are availability
+        'ta_availability': tas.iloc[:,1:].to_numpy()
     })
     
     print("Data loaded successfully.")
 
 def overallocation(solution):
-    """Compute overallocation penalty."""
+    """
+    Compute overallocation penalty.
+    
+    Args:
+        solution (numpy.ndarray): Binary matrix of TA assignments
+        
+    Returns:
+        int: Total overallocation penalty
+    """
     max_assigned = get_global_data('max_assigned')
     assignments = np.sum(solution, axis=1)
     penalty = np.maximum(assignments - max_assigned, 0)
     return int(sum(penalty))
 
 def conflicts(solution):
-    """ 
+    """
     Calculate time conflicts in a solution.
     A time conflict occurs when a TA is assigned to multiple sections with the same time slot.
+    
+    Args:
+        solution (numpy.ndarray): Binary matrix of TA assignments
+        
+    Returns:
+        int: Number of time conflicts
     """
     section_times = get_global_data('section_times')
     
     def _has_conflicts(ta_row):
         assigned_indices = np.where(ta_row == 1)[0]
-        # Get times of assigned sections
         assigned_times = section_times[assigned_indices]
         return len(assigned_times) > len(set(assigned_times))
     
@@ -60,16 +90,31 @@ def conflicts(solution):
     return sum(conflict_map)
 
 def undersupport(solution):
-    """Compute undersupport penalty."""
+    """
+    Compute undersupport penalty.
+    
+    Args:
+        solution (numpy.ndarray): Binary matrix of TA assignments
+        
+    Returns:
+        int: Total undersupport penalty
+    """
     min_ta = get_global_data('min_ta')
-    # Sum columns (labs)
     lab_assignments = solution.sum(axis=0)
     differences = min_ta - lab_assignments
     differences[differences < 0] = 0
     return int(differences.sum())
 
 def unavailable(solution):
-    """Compute unavailable penalty."""
+    """
+    Compute unavailable penalty.
+    
+    Args:
+        solution (numpy.ndarray): Binary matrix of TA assignments
+        
+    Returns:
+        int: Number of assignments where TAs are unavailable
+    """
     ta_availability = get_global_data('ta_availability')
     
     return int(((solution == 1) & (ta_availability == "U")).sum())
@@ -78,16 +123,27 @@ def unpreferred(solution):
     """
     Compute the unpreferred penalty.
     Penalty for assigning TAs to labs they would prefer not to teach.
+    
+    Args:
+        solution (numpy.ndarray): Binary matrix of TA assignments
+        
+    Returns:
+        int: Number of assignments with weak preference
     """
     ta_availability = get_global_data('ta_availability')
     
-    # Count matching 1s where TAs marked 'W' (weak preference)
     return int(((solution == 1) & (ta_availability == 'W')).sum())
 
-#Agents
+@profiler.profile
 def swapper(solutions):
     """
     Randomly modify a few assignments in the solution.
+    
+    Args:
+        solutions (list): List containing one solution matrix
+        
+    Returns:
+        numpy.ndarray: Modified solution with random changes
     """
     L = solutions[0].copy()  
     for _ in range(3):  
@@ -96,13 +152,133 @@ def swapper(solutions):
         L[ta, section] = 1 - L[ta, section]
     return L
 
+@profiler.profile
+def repair_overallocation_agent(candidates):
+    """
+    Repair agent: removes one assignment from a randomly selected overallocated TA.
+    
+    Args:
+        candidates (list): List containing one solution matrix
+        
+    Returns:
+        numpy.ndarray: Solution with reduced overallocation
+    """
+    sol = candidates[0].copy()
+    
+    assignments = np.sum(sol, axis=1)
+    max_assigned = get_global_data('max_assigned')
+    
+    overallocated = np.where(assignments > max_assigned)[0]
+    if overallocated.size > 0:
+        ta_idx = np.random.choice(overallocated)
+        assigned_labs = np.where(sol[ta_idx] == 1)[0]
+        if assigned_labs.size > 0:
+            lab_idx = np.random.choice(assigned_labs)
+            sol[ta_idx, lab_idx] = 0
+    return sol
+
+@profiler.profile
+def repair_conflicts_agent(candidates):
+    """
+    Repair agent: resolves time conflicts in the candidate solution.
+    For each TA, if they are assigned multiple sections with the same time slot,
+    remove extra assignments until there is at most one assignment per time slot.
+    
+    Args:
+        candidates (list): List containing one solution matrix
+        
+    Returns:
+        numpy.ndarray: Solution with reduced time conflicts
+    """
+    sol = candidates[0].copy()
+    
+    section_times = get_global_data('section_times')
+    
+    for i in range(sol.shape[0]):
+        assigned_indices = np.where(sol[i] == 1)[0]
+        time_mapping = {}
+        for idx in assigned_indices:
+            time_slot = section_times[idx]
+            if time_slot in time_mapping:
+                time_mapping[time_slot].append(idx)
+            else:
+                time_mapping[time_slot] = [idx]
+        for time_slot, indices in time_mapping.items():
+            while len(indices) > 1:
+                remove_idx = np.random.choice(indices[1:])
+                sol[i, remove_idx] = 0
+                indices.remove(remove_idx)
+    return sol
+
+@profiler.profile
+def repair_unpreferred_agent(candidates):
+    """
+    Repair agent: removes unpreferred assignments from the candidate solution.
+    
+    Args:
+        candidates (list): List containing one solution matrix
+        
+    Returns:
+        numpy.ndarray: Solution with reduced unpreferred assignments
+    """
+    sol = candidates[0].copy()
+    ta_availability = get_global_data('ta_availability')
+    for i in range(sol.shape[0]):
+        for j in range(sol.shape[1]):
+            if sol[i, j] == 1 and ta_availability[i, j] == 'W':
+                sol[i, j] = 0
+    return sol
+
+@profiler.profile
+def destroy_unavailable(candidates):
+    """
+    Agent focused on removing unavailable assignments.
+    Identifies and removes assignments where TAs are marked as unavailable.
+    Also attempts to reassign those sections to available TAs when possible.
+    
+    Args:
+        candidates (list): List containing one solution matrix
+        
+    Returns:
+        numpy.ndarray: Solution with reduced unavailable assignments
+    """
+    sol = candidates[0].copy()
+    ta_availability = get_global_data('ta_availability')
+    
+    unavailable_mask = (sol == 1) & (ta_availability == 'U')
+    unavailable_positions = np.where(unavailable_mask)
+    
+    if len(unavailable_positions[0]) > 0:
+        idx = np.random.randint(0, len(unavailable_positions[0]))
+        ta, section = unavailable_positions[0][idx], unavailable_positions[1][idx]
+        
+        sol[ta, section] = 0
+        
+        max_assigned = get_global_data('max_assigned')
+        ta_assignments = np.sum(sol, axis=1)
+        
+        available_mask = (ta_availability[:, section] == 'P') & (ta_assignments < max_assigned)
+        available_tas = np.where(available_mask)[0]
+        
+        if len(available_tas) > 0:
+            new_ta = np.random.choice(available_tas)
+            sol[new_ta, section] = 1
+    
+    return sol
+
 def main():
-    # Load the data first
+    """
+    Main function to run the TA assignment optimization.
+    Loads data, sets up the evolutionary framework, and runs the optimization.
+    """
     load_data()
 
-    # Create the framework object
     E = evo_new.Evo(random_state=42)
     E.add_agent("swapper", swapper)
+    E.add_agent("repair_overallocation", repair_overallocation_agent)
+    E.add_agent("repair_conflicts", repair_conflicts_agent)
+    E.add_agent("repair_unpreferred", repair_unpreferred_agent)
+    E.add_agent("destroy_unavailable", destroy_unavailable)
     E.add_objective("overallocation", overallocation)
     E.add_objective("conflicts", conflicts)
     E.add_objective("undersupport", undersupport)
@@ -112,11 +288,10 @@ def main():
     L = np.random.randint(0, 2, size=(40,17))
     E.add_solution(L)
 
-    E.evolve(n=1000000, dom=10, status=100, runtime=5)
+    E.evolve(n=1000000, dom=15, status=1000, runtime=10)
 
-    # Print final results
     print("\nFinal population:")
-    best_eval = list(E.pop.keys())[0]  # Get the first (best) solution
+    best_eval = list(E.pop.keys())[0]
     best_scores = dict(best_eval)
     
     print("\nBest solution scores:")
