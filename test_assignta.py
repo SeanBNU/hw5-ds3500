@@ -47,3 +47,12 @@ def test_undersupport(test_file, expected):
 def test_unavailable(test_file, expected):
     solution = load_solution(test_file)
     assert unavailable(solution) == expected
+
+@pytest.mark.parametrize("test_file, expected", [
+    ("data/test1.csv", 10),
+    ("data/test2.csv", 16),
+    ("data/test3.csv", 17)
+])
+def test_unpreferred(test_file, expected):
+    solution = load_solution(test_file)
+    assert unpreferred(solution) == expected
