@@ -296,7 +296,7 @@ def main():
     L = np.random.randint(0, 2, size=(40,17))
     E.add_solution(L)
 
-    E.evolve(n=2000000, dom=10, status=1000, runtime=25)
+    E.evolve(n=2000000, dom=10, status=1000, runtime=300)
 
     # Print final results
     print("\nFinal population:")
